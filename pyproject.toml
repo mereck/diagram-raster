@@ -1,0 +1,38 @@
+[project]
+name = "diagram-raster"
+version = "0.1.0"
+description = "Rasterize text diagrams (mermaid, d2, graphviz, ASCII) and gate Claude Code plans on clean-room brief-backs of the rendered images"
+readme = "README.md"
+authors = [
+    { name = "Alex M", email = "mereck@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pillow>=12.3.0",
+]
+
+[project.scripts]
+diagram-raster = "diagram_raster.cli:run"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.168.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.7",
+    "ty>=0.0.81",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+addopts = "--cov=diagram_raster --cov-report=term-missing --cov-fail-under=90"
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
