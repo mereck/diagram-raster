@@ -1,6 +1,7 @@
 """Claude Code hook decisions. Each gate returns a PreToolUse deny payload or None to allow."""
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -56,8 +57,23 @@ def diagram_problems(
     return problems
 
 
+# The context-mode plugin appends this routing block to every Agent prompt (hooks/core/routing.mjs),
+# and the brief-back cannot opt out of it. It says nothing about the diagram, so whole blocks at the
+# very end are dropped before the check; text before, after or between them still counts.
+CONTEXT_MODE_TAIL = re.compile(
+    r"\s*<context_window_protection>(?:(?!<context_window_protection>).)*</context_window_protection>\s*\Z",
+    re.DOTALL,
+)
+
+
+def without_context_mode_tail(prompt: str) -> str:
+    while (stripped := CONTEXT_MODE_TAIL.sub("", prompt)) != prompt:
+        prompt = stripped
+    return prompt
+
+
 def check_clean_room(prompt: str, ledger: Ledger) -> HookDecision | None:
-    tokens = prompt.split()
+    tokens = without_context_mode_tail(prompt).split()
     if not tokens:
         return deny(f"{BRIEFBACK_AGENT} prompt is empty. Pass the PNG paths from `diagram-raster render`.")
     stray = [token for token in tokens if ledger.digest_for_png(token) is None]

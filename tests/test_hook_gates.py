@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
@@ -84,6 +85,46 @@ def test_briefback_prompt_cannot_carry_diagram_source(ledger: Ledger, renderer: 
         {"subagent_type": BRIEFBACK_AGENT, "prompt": f"{png}\n{MERMAID}"}, ledger, renderer
     )
     assert "only PNG paths" in reason(decision)
+
+
+# What the context-mode plugin appends to every Agent prompt (hooks/core/routing.mjs); it carries
+# routing advice, nothing about the diagram.
+CONTEXT_MODE_BLOCK = (
+    "\n<context_window_protection>\n  <priority_instructions>\n    Every byte a tool returns enters "
+    "your conversation memory.\n  </priority_instructions>\n</context_window_protection>"
+)
+
+
+@pytest.mark.parametrize("copies", [1, 2])
+def test_briefback_allows_trailing_context_mode_blocks(
+    ledger: Ledger, renderer: StubRenderer, copies: int
+) -> None:
+    [png] = png_for(MERMAID, ledger, renderer)
+    prompt = png + CONTEXT_MODE_BLOCK * copies
+    assert gate_agent_call({"subagent_type": BRIEFBACK_AGENT, "prompt": prompt}, ledger, renderer) is None
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@given(stray=st.text(min_size=1).filter(lambda text: text.strip() != ""))
+def test_text_outside_a_trailing_context_mode_block_is_still_denied(
+    ledger: Ledger, renderer: StubRenderer, stray: str
+) -> None:
+    [png] = png_for(MERMAID, ledger, renderer)
+    call = {"subagent_type": BRIEFBACK_AGENT}
+    for prompt in (
+        f"{png} {stray}{CONTEXT_MODE_BLOCK}",
+        f"{png}{CONTEXT_MODE_BLOCK}\n{stray}",
+        f"{png}{CONTEXT_MODE_BLOCK}\n{stray}{CONTEXT_MODE_BLOCK}",
+    ):
+        if ledger.digest_for_png(stray.strip()) is None:
+            assert gate_agent_call({**call, "prompt": prompt}, ledger, renderer), prompt
+
+
+def test_context_mode_block_alone_is_an_empty_prompt(ledger: Ledger, renderer: StubRenderer) -> None:
+    decision = gate_agent_call(
+        {"subagent_type": BRIEFBACK_AGENT, "prompt": CONTEXT_MODE_BLOCK}, ledger, renderer
+    )
+    assert "empty" in reason(decision)
 
 
 def test_empty_briefback_prompt_is_denied(ledger: Ledger, renderer: StubRenderer) -> None:
