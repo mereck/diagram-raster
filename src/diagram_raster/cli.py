@@ -8,7 +8,7 @@ from PIL import Image
 
 from diagram_raster.extraction import diagram_digest, extract_diagrams, normalize_source
 from diagram_raster.hook_gates import gate_agent_call, gate_plan_exit, mentions, record_briefback_result
-from diagram_raster.ledger import Ledger, NoBriefbackError, default_ledger
+from diagram_raster.ledger import Ledger, NoBriefbackError, default_ledger, validate_digest
 from diagram_raster.models import Diagram, DiagramLang, Verdict
 from diagram_raster.rendering import DiagramRenderer, Renderer, ensure_rendered
 
@@ -133,6 +133,13 @@ def cmd_hook(
     return 0
 
 
+def digest_arg(value: str) -> str:
+    try:
+        return validate_digest(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="diagram-raster", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -145,12 +152,12 @@ def build_parser() -> argparse.ArgumentParser:
     status.add_argument("path")
 
     record = sub.add_parser("record", help="record your verdict after comparing a brief-back to intent")
-    record.add_argument("digest")
+    record.add_argument("digest", type=digest_arg)
     record.add_argument("--verdict", choices=[v.value for v in Verdict], required=True)
     record.add_argument("--intent", required=True, help="what the diagram is meant to communicate")
 
     show = sub.add_parser("show", help="print render path, verdict and captured brief-backs")
-    show.add_argument("digest")
+    show.add_argument("digest", type=digest_arg)
 
     hook = sub.add_parser("hook", help="Claude Code hook entry point; reads hook JSON on stdin")
     hook.add_argument("event", choices=["exit-plan", "agent-pre", "agent-post"])

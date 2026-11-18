@@ -40,7 +40,7 @@ class FakeRunner:
 @pytest.mark.parametrize(
     ("lang", "tool", "suffix"),
     [
-        (DiagramLang.MERMAID, "@mermaid-js/mermaid-cli@11", ".mmd"),
+        (DiagramLang.MERMAID, "@mermaid-js/mermaid-cli@11.17.1", ".mmd"),
         (DiagramLang.D2, "d2", ".d2"),
         (DiagramLang.DOT, "dot", ".dot"),
     ],

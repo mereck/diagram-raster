@@ -66,3 +66,15 @@ def test_exit_plan_hook_prints_deny_json(ledger: Ledger, renderer: StubRenderer)
 def test_hook_allows_silently(ledger: Ledger, renderer: StubRenderer) -> None:
     hook_input = {"tool_name": "Agent", "tool_input": {"subagent_type": "Explore", "prompt": "find"}}
     assert run(["hook", "agent-pre"], ledger, renderer, json.dumps(hook_input)) == (0, "")
+
+
+def test_record_refuses_a_digest_that_would_leave_the_store(
+    ledger: Ledger, renderer: StubRenderer, tmp_path: Path
+) -> None:
+    try:
+        run(["record", "../escape", "--verdict", "fail", "--intent", "x"], ledger, renderer)
+    except SystemExit as exit:
+        assert exit.code == 2
+    else:
+        raise AssertionError("expected argparse to refuse the digest")
+    assert not (ledger.root.parent / "escape").exists()

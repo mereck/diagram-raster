@@ -8,7 +8,7 @@ been read back correctly by an agent that saw only the image.
 ## Install
 
 ```sh
-brew install graphviz d2        # mermaid runs through npx @mermaid-js/mermaid-cli@11
+brew install graphviz d2        # mermaid runs through npx @mermaid-js/mermaid-cli@11.17.1
 make install                    # uv tool install --editable .
 ```
 

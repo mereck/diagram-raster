@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -9,6 +10,15 @@ from diagram_raster.models import BRIEFBACK_AGENT, Briefback, Verdict, VerdictRe
 PNG_NAME = "render.png"
 BRIEFBACKS_NAME = "briefbacks.jsonl"
 VERDICT_NAME = "verdict.json"
+# Digests come from diagram_digest (16 hex chars). Anything else, such as "../x",
+# would name a directory outside the store.
+DIGEST = re.compile(r"[0-9a-f]{1,64}")
+
+
+def validate_digest(digest: str) -> str:
+    if not DIGEST.fullmatch(digest):
+        raise ValueError(f"invalid digest {digest!r}: expected lowercase hex")
+    return digest
 
 
 class NoBriefbackError(Exception):
@@ -30,13 +40,16 @@ class Ledger:
     root: Path
 
     def entry_dir(self, digest: str) -> Path:
-        return self.root / digest
+        return self.root / validate_digest(digest)
 
     def png_path(self, digest: str) -> Path:
         return self.entry_dir(digest) / PNG_NAME
 
     def digest_for_png(self, path: str) -> str | None:
-        candidate = Path(path).expanduser()
+        try:
+            candidate = Path(path).expanduser()
+        except RuntimeError:  # "~someone" for a user that doesn't exist
+            return None
         if candidate.name != PNG_NAME or not candidate.is_file():
             return None
         try:

@@ -37,4 +37,14 @@ def test_png_paths_resolve_to_digests_only_inside_the_store(ledger: Ledger, tmp_
     outside.write_bytes(b"png")
     assert ledger.digest_for_png(str(png)) == "abc123"
     assert ledger.digest_for_png(str(outside)) is None
-    assert ledger.digest_for_png(str(ledger.png_path("missing"))) is None
+    assert ledger.digest_for_png(str(ledger.png_path("0000000000000000"))) is None
+
+
+@pytest.mark.parametrize("digest", ["../escape", "abc/def", "", "ABC123", "/tmp/x"])
+def test_digests_that_are_not_hex_are_refused(ledger: Ledger, digest: str) -> None:
+    with pytest.raises(ValueError):
+        ledger.entry_dir(digest)
+
+
+def test_a_tilde_for_an_unknown_user_is_not_a_render(ledger: Ledger) -> None:
+    assert ledger.digest_for_png("~no-such-user-xyz/render.png") is None

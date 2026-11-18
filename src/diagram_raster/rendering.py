@@ -14,7 +14,9 @@ from diagram_raster.models import Diagram, DiagramLang, RenderResult
 
 type Runner = Callable[[list[str], dict[str, str]], subprocess.CompletedProcess[str]]
 
-MERMAID_CLI = "@mermaid-js/mermaid-cli@11"
+# Pinned: npx downloads and runs this package, so a floating range would run
+# whatever release appears next.
+MERMAID_CLI = "@mermaid-js/mermaid-cli@11.17.1"
 RENDER_TIMEOUT_SECONDS = 120
 SOURCE_SUFFIX = {
     DiagramLang.MERMAID: ".mmd",
